@@ -80,7 +80,7 @@ function injectTaskStyles() {
 }
 injectTaskStyles();
 
-// --- WAITING TRIAL FÜR TEIL 3 & 4 (Ohne schwarzes Rechteck) ---
+// --- WAITING TRIAL FÜR TEILE 2 & 3 ---
 function createWaitingTrial(conditionType, phaseLabel) {
     return {
         type: jsPsychHtmlKeyboardResponse,
@@ -163,7 +163,13 @@ timeline.push({
     choices: ['Verstanden, Aufgabe starten']
 });
 
-const rt_conditions = jsPsych.randomization.shuffle(['countdown_regular', 'countdown_irregular', 'bar_regular', 'bar_irregular']);
+// HIER GEÄNDERT: Jede Bedingung 2x = 8 Durchgänge insgesamt
+const rt_conditions = jsPsych.randomization.shuffle([
+    'countdown_regular', 'countdown_regular',
+    'countdown_irregular', 'countdown_irregular',
+    'bar_regular', 'bar_regular',
+    'bar_irregular', 'bar_irregular'
+]);
 
 rt_conditions.forEach(condition => {
     timeline.push(fixation);
@@ -284,7 +290,6 @@ const comparisons = jsPsych.randomization.shuffle([
     { pair: ['countdown_regular', 'countdown_irregular'], id: 'compare_countdowns' },
     { pair: ['bar_regular', 'bar_irregular'], id: 'compare_bars' },
     { pair: ['countdown_irregular', 'bar_irregular'], id: 'compare_irregular_formats' },
-    // NEU: Die beiden Kreuz-Vergleiche
     { pair: ['countdown_irregular', 'bar_regular'], id: 'compare_cd_irreg_vs_bar_reg' },
     { pair: ['countdown_regular', 'bar_irregular'], id: 'compare_cd_reg_vs_bar_irreg' }
 ]);
@@ -295,7 +300,6 @@ comparisons.forEach((comp, index) => {
 
     timeline.push({
         type: jsPsychHtmlButtonResponse,
-        // Dynamische Anzeige: "Vergleich 1 von 5", "2 von 5", etc.
         stimulus: `<div style="padding: 50px;"><h3>Vergleich ${index + 1} von ${comparisons.length}</h3><p>Klicken Sie auf 'Start', um den <strong>ersten</strong> Ladebildschirm zu sehen.</p></div>`,
         choices: ['Start']
     });
@@ -315,7 +319,7 @@ comparisons.forEach((comp, index) => {
     timeline.push(fixation);
     timeline.push(createWaitingTrial(order[1], `comparison_${index+1}_video_2`));
 
-    // Die "Forced Choice" Abfrage (ohne Gleich-Lang-Option)
+    // Die "Forced Choice" Abfrage
     timeline.push({
         type: jsPsychHtmlButtonResponse,
         stimulus: `
@@ -369,124 +373,6 @@ classification_conditions.forEach(condition => {
             data.correct_guess = (is_manipulated === (data.response === 1));
         }
     });
-});
-
-// ==========================================
-// TEIL 4: ZEITREPRODUKTION (Mit Retry-Option)
-// ==========================================
-timeline.push({
-    type: jsPsychHtmlButtonResponse,
-    stimulus: "<h2>Teil 4: Zeitwahrnehmung</h2><p>Sie sehen nun noch einmal Ladebildschirme. Prägen Sie sich ein, wie lange die Wartezeit gefühlt dauert.</p><p>Direkt danach müssen Sie die <strong>linke Maustaste genau so lange gedrückt halten</strong>, wie die Wartezeit gedauert hat.</p><p>Falls Sie abrutschen, können Sie den Versuch wiederholen.</p>",
-    choices: ['Verstanden']
-});
-
-const reproduction_conditions = jsPsych.randomization.shuffle([
-    'countdown_regular', 'countdown_regular',
-    'countdown_irregular', 'countdown_irregular',
-    'bar_regular', 'bar_regular',
-    'bar_irregular', 'bar_irregular'
-]);
-
-reproduction_conditions.forEach(condition => {
-
-    // Wir packen den Wartebildschirm, die Messung UND die Abfrage in eine Timeline-Variable
-    const trial_timeline = [];
-
-    trial_timeline.push(fixation);
-    trial_timeline.push(createWaitingTrial(condition, 'reproduction_wait'));
-
-    trial_timeline.push({
-        type: jsPsychHtmlKeyboardResponse,
-        stimulus: `
-            <div style="padding: 50px; user-select: none;">
-                <h2>Jetzt reproduzieren</h2>
-                <p>Klicken und halten Sie die <strong>linke Maustaste</strong> gedrückt.</p>
-                <p>Lassen Sie los, wenn Sie denken, dass die Zeit um ist.</p>
-                <div id="repro-feedback" style="margin-top: 40px; font-size: 24px; color: #fcba03; height: 30px; font-weight: bold;"></div>
-            </div>
-        `,
-        choices: "NO_KEYS",
-        data: { task: 'time_reproduction_measurement', preceding_condition: condition },
-        on_load: function() {
-            let holdStart = 0;
-            let isHolding = false;
-            let handlerRemoved = false;
-            const feedback = document.getElementById('repro-feedback');
-
-            const downHandler = (e) => {
-                if (e.button === 0 && !isHolding && !handlerRemoved) {
-                    isHolding = true;
-                    holdStart = performance.now();
-                    feedback.innerText = "Messung läuft...";
-                    feedback.style.color = "#ff4d4d";
-                }
-            };
-
-            const upHandler = (e) => {
-                if (e.button === 0 && isHolding && !handlerRemoved) {
-                    const holdDuration = performance.now() - holdStart;
-                    handlerRemoved = true;
-                    isHolding = false;
-                    feedback.innerText = "Gespeichert!";
-                    feedback.style.color = "#2ed573";
-
-                    document.removeEventListener('mousedown', downHandler);
-                    document.removeEventListener('mouseup', upHandler);
-                    document.removeEventListener('contextmenu', contextMenuHandler);
-
-                    setTimeout(() => {
-                        jsPsych.finishTrial({ reproduced_duration_ms: holdDuration });
-                    }, 800);
-                }
-            };
-            const contextMenuHandler = (event) => event.preventDefault();
-            document.addEventListener('mousedown', downHandler);
-            document.addEventListener('mouseup', upHandler);
-            document.addEventListener('contextmenu', contextMenuHandler);
-        }
-    });
-
-    // Die "Retry" Abfrage
-    trial_timeline.push({
-        type: jsPsychHtmlButtonResponse,
-        stimulus: function() {
-            // Hole den Wert der letzen Messung, um ihn dem User kurz zu zeigen (optional, aber gutes Feedback)
-            const last_trial_data = jsPsych.data.get().last(1).values()[0];
-            const duration_sec = (last_trial_data.reproduced_duration_ms / 1000).toFixed(2);
-            return `
-                <div style="padding: 30px;">
-                    <h3>Messung erfolgreich</h3>
-                    <p>Falls Sie versehentlich zu früh losgelassen haben können Sie die Messung wiederholen</p>
-                </div>
-            `;
-        },
-        choices: ['Weiter zum Nächsten', 'Wiederholen'],
-        data: { task: 'reproduction_retry_check' },
-        on_finish: function(data) {
-            // Wenn Antwort = 1 (Wiederholen), speichern wir das im Datensatz
-            data.retry_requested = (data.response === 1);
-
-            // WICHTIG: Wenn der User wiederholt, markieren wir die vorherigen Messungen dieses Loops als ungültig,
-            // damit du sie später leichter rausfiltern kannst.
-            if(data.retry_requested) {
-                const data_to_ignore = jsPsych.data.get().last(3).values(); // Wait, Measure, Check
-                data_to_ignore.forEach(d => d.ignore_in_analysis = true);
-            }
-        }
-    });
-
-    // Der Loop-Knoten für jsPsych
-    const reproduction_loop = {
-        timeline: trial_timeline,
-        loop_function: function(data) {
-            // Hole die Daten des Retry-Check-Bildschirms
-            const lastData = data.last(1).values()[0];
-            // Wenn der User auf "Wiederholen" geklickt hat (response === 1), läuft der Loop nochmal
-            return lastData.retry_requested === true;
-        }
-    };
-
-    timeline.push(reproduction_loop);
 });
 
 // Start des Experiments
