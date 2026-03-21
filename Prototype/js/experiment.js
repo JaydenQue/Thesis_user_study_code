@@ -99,11 +99,11 @@ function createWaitingTrial(conditionType, phaseLabel) {
 
                 if (conditionType === 'countdown_irregular') {
                     let num = elapsed < 600 ? "5" : elapsed < 1700 ? "4" : elapsed < 2800 ? "3" : elapsed < 3900 ? "2" : "1";
-                    display.innerHTML = `<span style="font-size: 40px; color: #555; font-weight: bold;">Laden... ${num}</span>`;
+                    display.innerHTML = `<span style="font-size: 40px; color: #555; font-weight: bold;">${num}</span>`;
                 }
                 else if (conditionType === 'countdown_regular') {
                     let num = elapsed < 1000 ? "5" : elapsed < 2000 ? "4" : elapsed < 3000 ? "3" : elapsed < 4000 ? "2" : "1";
-                    display.innerHTML = `<span style="font-size: 40px; color: #555; font-weight: bold;">Laden... ${num}</span>`;
+                    display.innerHTML = `<span style="font-size: 40px; color: #555; font-weight: bold;">${num}</span>`;
                 }
                 else if (conditionType === 'bar_regular') {
                     const pct = Math.floor((elapsed / TOTAL_DURATION) * 100);
@@ -217,11 +217,11 @@ rt_conditions.forEach(condition => {
                 // Während der 5 Sekunden: Zeichnen des Countdowns oder Balkens
                 if (condition === 'countdown_irregular') {
                     let num = elapsed < 600 ? "5" : elapsed < 1700 ? "4" : elapsed < 2800 ? "3" : elapsed < 3900 ? "2" : "1";
-                    centralDisplay.innerHTML = `<span style="font-size: 40px; color: #555; font-weight: bold;">Laden... ${num}</span>`;
+                    centralDisplay.innerHTML = `<span style="font-size: 40px; color: #555; font-weight: bold;">${num}</span>`;
                 }
                 else if (condition === 'countdown_regular') {
                     let num = elapsed < 1000 ? "5" : elapsed < 2000 ? "4" : elapsed < 3000 ? "3" : elapsed < 4000 ? "2" : "1";
-                    centralDisplay.innerHTML = `<span style="font-size: 40px; color: #555; font-weight: bold;">Laden... ${num}</span>`;
+                    centralDisplay.innerHTML = `<span style="font-size: 40px; color: #555; font-weight: bold;">${num}</span>`;
                 }
                 else if (condition === 'bar_regular') {
                     const pct = Math.floor((elapsed / TOTAL_DURATION) * 100);
