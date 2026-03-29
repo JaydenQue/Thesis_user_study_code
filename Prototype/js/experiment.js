@@ -1,18 +1,89 @@
+// Generiere eine zufällige ID für den Teilnehmer
+const subject_id = "VP_" + Math.floor(Math.random() * 100000);
+
 const jsPsych = initJsPsych({
     on_finish: function() {
+        // 1. Fügt die VP-ID zu JEDER Zeile in den Daten hinzu
+        jsPsych.data.addProperties({ subject: subject_id });
+
+        // 2. DATEN BEREINIGEN (Nur echte Messungen behalten & Müll-Spalten entfernen)
+        const currentData = jsPsych.data.get()
+            .filterCustom(function(trial){
+                // Behalte NUR Trials, die einen 'task' definiert haben (Messungen)
+                return trial.task !== undefined && trial.ignore_in_analysis !== true;
+            })
+            // Ignoriere die Spalten mit riesigem HTML-Code und jsPsych-Systemdaten
+            .ignore(['stimulus', 'internal_node_id', 'trial_type', 'trial_index', 'time_elapsed']);
+
+        let currentCSV = currentData.csv();
+
+        // 3. An die lokale Browser-Datenbank anhängen
+        let savedCSV = localStorage.getItem('experiment_master_db');
+
+        if (!savedCSV) {
+            localStorage.setItem('experiment_master_db', currentCSV);
+        } else {
+            let lines = currentCSV.split('\n');
+            lines.shift(); // Löscht die Überschriften des neuen Teilnehmers
+
+            lines = lines.filter(line => line.trim() !== ''); // Leere Zeilen ignorieren
+            if(lines.length > 0) {
+                let newCSV = savedCSV + '\n' + lines.join('\n');
+                localStorage.setItem('experiment_master_db', newCSV);
+            }
+        }
+
+        // 4. Den Abschluss-Bildschirm für Teilnehmer & Versuchsleitung anzeigen
         document.body.innerHTML = `
-            <div style="text-align:center; padding:50px;">
-                <h1>Experiment beendet. Vielen Dank!</h1>
-                <p>Klicken Sie unten, um Ihre Daten zu speichern.</p>
-                <button id="btn-csv" style="padding: 10px 20px; font-size: 16px; margin: 10px; cursor: pointer;">CSV Herunterladen</button>
-                <button id="btn-json" style="padding: 10px 20px; font-size: 16px; margin: 10px; cursor: pointer;">JSON Herunterladen</button>
+            <div style="text-align:center; padding:50px; font-family: sans-serif;">
+                <h1 style="color: #2ed573;">Experiment beendet. Vielen Dank!</h1>
+                <p style="font-size: 20px;">Bitte rufen Sie nun die Versuchsleitung.</p>
+                
+                <div style="margin-top: 80px; padding: 30px; border: 2px dashed #ccc; display: inline-block; background-color: #f9f9f9; border-radius: 10px;">
+                    <p style="color: #666; font-size: 14px; text-transform: uppercase; letter-spacing: 1px; margin-top: 0;">Nur für Versuchsleitung:</p>
+                    
+                    <button id="btn-next" style="padding: 12px 24px; font-size: 18px; margin: 10px; cursor: pointer; background-color: #1e90ff; color: white; border: none; border-radius: 5px; font-weight: bold;">
+                        Nächster Teilnehmer (Neustart)
+                    </button>
+                    <br><br>
+                    <button id="btn-download" style="padding: 10px 20px; font-size: 14px; margin: 10px; cursor: pointer; background-color: #fff; border: 1px solid #ccc; border-radius: 5px;">
+                        💾 Gesamte Datenbank herunterladen
+                    </button>
+                    <button id="btn-clear" style="padding: 10px 20px; font-size: 14px; margin: 10px; cursor: pointer; background-color: #fff; color: #ff4757; border: 1px solid #ff4757; border-radius: 5px;">
+                        🗑️ Datenbank löschen
+                    </button>
+                </div>
             </div>
         `;
-        document.getElementById('btn-csv').addEventListener('click', () => {
-            jsPsych.data.get().localSave('csv', `experiment_data_${Date.now()}.csv`);
+
+        // 5. Funktionen der Buttons
+        document.getElementById('btn-next').addEventListener('click', () => {
+            window.location.reload();
         });
-        document.getElementById('btn-json').addEventListener('click', () => {
-            jsPsych.data.get().localSave('json', `experiment_data_${Date.now()}.json`);
+
+        document.getElementById('btn-download').addEventListener('click', () => {
+            const dbCSV = localStorage.getItem('experiment_master_db');
+            if (!dbCSV) {
+                alert("Die Datenbank ist aktuell leer!");
+                return;
+            }
+            const blob = new Blob([dbCSV], { type: 'text/csv' });
+            const url = window.URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.style.display = 'none';
+            a.href = url;
+            a.download = 'Gesamtdatenbank_Experiment_' + new Date().toISOString().slice(0,10) + '.csv';
+            document.body.appendChild(a);
+            a.click();
+            window.URL.revokeObjectURL(url);
+        });
+
+        document.getElementById('btn-clear').addEventListener('click', () => {
+            const confirmed = confirm("SICHER? Dadurch werden ALLE bisherigen Teilnehmerdaten auf diesem Laptop unwiderruflich gelöscht!");
+            if (confirmed) {
+                localStorage.removeItem('experiment_master_db');
+                alert("Datenbank wurde erfolgreich geleert. Sie können nun frisch starten.");
+            }
         });
     }
 });
