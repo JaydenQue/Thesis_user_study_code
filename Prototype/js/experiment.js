@@ -1,95 +1,69 @@
-// Generiere eine zufällige ID für den Teilnehmer
-const subject_id = "VP_" + Math.floor(Math.random() * 100000);
+
+const subject_id = "VP_" + Date.now();
 
 const jsPsych = initJsPsych({
     on_finish: function() {
-        // 1. Fügt die VP-ID zu JEDER Zeile in den Daten hinzu
+
         jsPsych.data.addProperties({ subject: subject_id });
 
-        // 2. DATEN BEREINIGEN (Nur echte Messungen behalten & Müll-Spalten entfernen)
         const currentData = jsPsych.data.get()
             .filterCustom(function(trial){
-                // Behalte NUR Trials, die einen 'task' definiert haben (Messungen)
                 return trial.task !== undefined && trial.ignore_in_analysis !== true;
             })
-            // Ignoriere die Spalten mit riesigem HTML-Code und jsPsych-Systemdaten
             .ignore(['stimulus', 'internal_node_id', 'trial_type', 'trial_index', 'time_elapsed']);
 
         let currentCSV = currentData.csv();
 
-        // 3. An die lokale Browser-Datenbank anhängen
-        let savedCSV = localStorage.getItem('experiment_master_db');
+        function downloadCSV() {
+            const blob = new Blob([currentCSV], { type: 'text/csv' });
+            const url = window.URL.createObjectURL(blob);
 
-        if (!savedCSV) {
-            localStorage.setItem('experiment_master_db', currentCSV);
-        } else {
-            let lines = currentCSV.split('\n');
-            lines.shift(); // Löscht die Überschriften des neuen Teilnehmers
+            const a = document.createElement('a');
+            a.style.display = 'none';
+            a.href = url;
+            a.download = subject_id + '_experiment.csv';
 
-            lines = lines.filter(line => line.trim() !== ''); // Leere Zeilen ignorieren
-            if(lines.length > 0) {
-                let newCSV = savedCSV + '\n' + lines.join('\n');
-                localStorage.setItem('experiment_master_db', newCSV);
-            }
+            document.body.appendChild(a);
+            a.click();
+
+            window.URL.revokeObjectURL(url);
         }
-
-        // 4. Den Abschluss-Bildschirm für Teilnehmer & Versuchsleitung anzeigen
+        downloadCSV();
+        //End Screen
         document.body.innerHTML = `
             <div style="text-align:center; padding:50px; font-family: sans-serif;">
                 <h1 style="color: #2ed573;">Experiment beendet. Vielen Dank!</h1>
                 <p style="font-size: 20px;">Bitte rufen Sie nun die Versuchsleitung.</p>
                 
                 <div style="margin-top: 80px; padding: 30px; border: 2px dashed #ccc; display: inline-block; background-color: #f9f9f9; border-radius: 10px;">
-                    <p style="color: #666; font-size: 14px; text-transform: uppercase; letter-spacing: 1px; margin-top: 0;">Nur für Versuchsleitung:</p>
+                    <p style="color: #666; font-size: 14px;">Nur für Versuchsleitung:</p>
                     
-                    <button id="btn-next" style="padding: 12px 24px; font-size: 18px; margin: 10px; cursor: pointer; background-color: #1e90ff; color: white; border: none; border-radius: 5px; font-weight: bold;">
-                        Nächster Teilnehmer (Neustart)
+                    <button id="btn-next" style="padding: 12px 24px; font-size: 18px; margin: 10px; cursor: pointer; background-color: #1e90ff; color: white; border: none; border-radius: 5px;">
+                        Nächster Teilnehmer
                     </button>
+
                     <br><br>
-                    <button id="btn-download" style="padding: 10px 20px; font-size: 14px; margin: 10px; cursor: pointer; background-color: #fff; border: 1px solid #ccc; border-radius: 5px;">
-                        💾 Gesamte Datenbank herunterladen
-                    </button>
-                    <button id="btn-clear" style="padding: 10px 20px; font-size: 14px; margin: 10px; cursor: pointer; background-color: #fff; color: #ff4757; border: 1px solid #ff4757; border-radius: 5px;">
-                        🗑️ Datenbank löschen
+
+                    <button id="btn-download" style="padding: 10px 20px; font-size: 14px; margin: 10px; cursor: pointer;">
+                        💾 Daten erneut herunterladen
                     </button>
                 </div>
             </div>
         `;
 
-        // 5. Funktionen der Buttons
+        //Buttons
+
         document.getElementById('btn-next').addEventListener('click', () => {
             window.location.reload();
         });
 
         document.getElementById('btn-download').addEventListener('click', () => {
-            const dbCSV = localStorage.getItem('experiment_master_db');
-            if (!dbCSV) {
-                alert("Die Datenbank ist aktuell leer!");
-                return;
-            }
-            const blob = new Blob([dbCSV], { type: 'text/csv' });
-            const url = window.URL.createObjectURL(blob);
-            const a = document.createElement('a');
-            a.style.display = 'none';
-            a.href = url;
-            a.download = 'Gesamtdatenbank_Experiment_' + new Date().toISOString().slice(0,10) + '.csv';
-            document.body.appendChild(a);
-            a.click();
-            window.URL.revokeObjectURL(url);
-        });
-
-        document.getElementById('btn-clear').addEventListener('click', () => {
-            const confirmed = confirm("SICHER? Dadurch werden ALLE bisherigen Teilnehmerdaten auf diesem Laptop unwiderruflich gelöscht!");
-            if (confirmed) {
-                localStorage.removeItem('experiment_master_db');
-                alert("Datenbank wurde erfolgreich geleert. Sie können nun frisch starten.");
-            }
+            downloadCSV();
         });
     }
 });
 
-// --- GLOBALE EINSTELLUNGEN ---
-const TOTAL_DURATION = 5000; // Dauer der Wartebildschirme (5000ms)
+const TOTAL_DURATION = 5000;
 
 const colorDefinitions = [
     { name: 'ROT', hex: '#ff4d4d', idx: 0 },
@@ -98,7 +72,6 @@ const colorDefinitions = [
     { name: 'GRÜN', hex: '#32ff7e', idx: 3 }
 ];
 
-// --- CSS INJEKTION ---
 function injectTaskStyles() {
     const styleString = `
         body { user-select: none; -webkit-user-select: none; background-color: #f9f9f9; }
@@ -151,7 +124,7 @@ function injectTaskStyles() {
 }
 injectTaskStyles();
 
-// --- WAITING TRIAL FÜR TEILE 2 & 3 ---
+// Teil 2 und 3
 function createWaitingTrial(conditionType, phaseLabel) {
     return {
         type: jsPsychHtmlKeyboardResponse,
@@ -208,16 +181,13 @@ const fixation = {
 
 let timeline = [];
 
-// --- EINLEITUNG ---
 timeline.push({
     type: jsPsychHtmlButtonResponse,
     stimulus: "<h1>Willkommen zum Experiment</h1><p>Vielen Dank für Ihre Teilnahme.<br>Dieses Experiment besteht aus drei kurzen Teilen. Bitte folgen Sie den Anweisungen auf dem Bildschirm.</p>",
     choices: ['Starten']
 });
 
-// ==========================================
-// TEIL 1: REAKTIONSZEIT (Kombinierter Trial)
-// ==========================================
+// TEIL 1: REAKTIONSZEIT
 timeline.push({
     type: jsPsychHtmlButtonResponse,
     stimulus: `
@@ -233,8 +203,6 @@ timeline.push({
     `,
     choices: ['Verstanden, Aufgabe starten']
 });
-
-// HIER GEÄNDERT: Jede Bedingung 2x = 8 Durchgänge insgesamt
 const rt_conditions = jsPsych.randomization.shuffle([
     'countdown_regular', 'countdown_regular',
     'countdown_irregular', 'countdown_irregular',
@@ -244,8 +212,6 @@ const rt_conditions = jsPsych.randomization.shuffle([
 
 rt_conditions.forEach(condition => {
     timeline.push(fixation);
-
-    // Nahtloser Trial: Wartezeit + Reaktionszeit in einem Screen
     timeline.push({
         type: jsPsychHtmlKeyboardResponse,
         choices: "NO_KEYS",
@@ -263,29 +229,25 @@ rt_conditions.forEach(condition => {
             const centralDisplay = document.getElementById('central-stimulus');
             const boxes = document.querySelectorAll('.color-box');
 
-            // Random Wort vorbereiten
             const targetColorIdx = Math.floor(Math.random() * 4);
             const targetWord = colorDefinitions[targetColorIdx].name;
             const correctIdx = colorDefinitions[targetColorIdx].idx;
 
             const animStartTime = performance.now();
             let rtStartTime = null;
-            let phase = 'waiting'; // 'waiting' -> 'reacting' -> 'done'
+            let phase = 'waiting';
 
-            // Animation Loop (5s)
             function animate() {
                 const now = performance.now();
                 const elapsed = now - animStartTime;
 
-                // Sobald 5 Sekunden um sind: Ladebalken/Countdown durch Wort ersetzen
                 if (elapsed >= TOTAL_DURATION) {
                     phase = 'reacting';
                     centralDisplay.innerHTML = `<span style="font-size: 72px; font-weight: bold; color: black; text-transform: uppercase;">${targetWord}</span>`;
-                    rtStartTime = performance.now(); // Start der Zeitmessung!
+                    rtStartTime = performance.now();
                     return;
                 }
 
-                // Während der 5 Sekunden: Zeichnen des Countdowns oder Balkens
                 if (condition === 'countdown_irregular') {
                     let num = elapsed < 600 ? "5" : elapsed < 1700 ? "4" : elapsed < 2800 ? "3" : elapsed < 3900 ? "2" : "1";
                     centralDisplay.innerHTML = `<span style="font-size: 40px; color: #555; font-weight: bold;">${num}</span>`;
@@ -314,10 +276,9 @@ rt_conditions.forEach(condition => {
             }
             requestAnimationFrame(animate);
 
-            // Klick-Logik
             boxes.forEach(box => {
                 box.addEventListener('click', function() {
-                    if (phase !== 'reacting') return; // Klicks während des Countdowns ignorieren
+                    if (phase !== 'reacting') return;
                     phase = 'done';
 
                     const clickTime = performance.now();
@@ -343,9 +304,9 @@ rt_conditions.forEach(condition => {
     });
 });
 
-// ==========================================
-// TEIL 2: DIREKTER VERGLEICH (2-AFC)
-// ==========================================
+
+// TEIL 2: DIREKTER VERGLEICH
+
 timeline.push({
     type: jsPsychHtmlButtonResponse,
     stimulus: `
@@ -356,7 +317,6 @@ timeline.push({
     choices: ['Verstanden']
 });
 
-// Die 5 Vergleiche (werden für jeden User zufällig gemischt)
 const comparisons = jsPsych.randomization.shuffle([
     { pair: ['countdown_regular', 'countdown_irregular'], id: 'compare_countdowns' },
     { pair: ['bar_regular', 'bar_irregular'], id: 'compare_bars' },
@@ -366,7 +326,6 @@ const comparisons = jsPsych.randomization.shuffle([
 ]);
 
 comparisons.forEach((comp, index) => {
-    // Die Reihenfolge von Video 1 und Video 2 innerhalb des Paares zufällig mischen
     const order = jsPsych.randomization.shuffle(comp.pair);
 
     timeline.push({
@@ -375,22 +334,16 @@ comparisons.forEach((comp, index) => {
         choices: ['Start']
     });
 
-    // Erstes Video
     timeline.push(fixation);
     timeline.push(createWaitingTrial(order[0], `comparison_${index+1}_video_1`));
-
-    // Zwischenbildschirm
     timeline.push({
         type: jsPsychHtmlButtonResponse,
         stimulus: `<div style="padding: 50px;"><h3>Erster Ladebildschirm beendet</h3><p>Klicken Sie auf 'Weiter', um den <strong>zweiten</strong> zu sehen.</p></div>`,
         choices: ['Weiter']
     });
 
-    // Zweites Video
     timeline.push(fixation);
     timeline.push(createWaitingTrial(order[1], `comparison_${index+1}_video_2`));
-
-    // Die "Forced Choice" Abfrage
     timeline.push({
         type: jsPsychHtmlButtonResponse,
         stimulus: `
@@ -408,15 +361,14 @@ comparisons.forEach((comp, index) => {
             condition_2_shown: order[1]
         },
         on_finish: function(data) {
-            // Speichern, welche Bedingung der User tatsächlich als "länger" empfand
             data.chosen_as_longer = (data.response === 0) ? order[0] : order[1];
+
         }
     });
 });
 
-// ==========================================
 // TEIL 3: KLASSIFIZIERUNG
-// ==========================================
+
 timeline.push({
     type: jsPsychHtmlButtonResponse,
     stimulus: "<h2>Teil 3: Beobachtungsgabe</h2><p><br>Sie sehen nun mehrere Ladebildschirme hintereinander. Bewerten Sie nach jedem Bildschirm, ob er regelmäßig oder unregelmäßig schnell war.</p>",
@@ -446,5 +398,4 @@ classification_conditions.forEach(condition => {
     });
 });
 
-// Start des Experiments
 jsPsych.run(timeline);
