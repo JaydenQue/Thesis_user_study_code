@@ -10,4 +10,5 @@ This repository contains the code used to conduct and/or analyse the user study 
 
 ## Note
 
-This repository is provided to support the reproducibility and documentation of the thesis research. Some files or data may be omitted or anonymised to protect participant privacy.
+This repository is provided to support the reproducibility and documentation of the thesis research. Some files or data may be omitted or anonymised to protect participant privacy. Please note that
+the user study was conducted in German.

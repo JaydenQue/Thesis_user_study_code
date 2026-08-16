@@ -35,7 +35,7 @@ body {
     align-items: center;
 }
 
-.video-container {
+.container {
     width: 100vw;
     max-width: 80vw;
     aspect-ratio: 16 / 9;
@@ -48,7 +48,7 @@ body {
     border-radius: 8px;
 }
 
-.ad-overlay {
+.overlay {
     position: absolute;
     top: 50%;
     left: 50%;
@@ -72,7 +72,7 @@ body {
 }
 
 
-.ad-content {
+.content {
     width: 100%;
     text-align: center;
     font-size: clamp(16px, 2.5vw, 22px);
