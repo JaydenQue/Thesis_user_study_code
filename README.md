@@ -7,6 +7,7 @@ This repository contains the code used to conduct and/or analyse the user study 
 * `style.css` - CSS stylesheet defining the visual layout and styling of the user study interface, including the jsPsych content area, buttons, colors, typography, and responsive sizing.
 * `experiment.js` - JavaScript/jsPsych implementation, including randomized reaction-time, direct-comparison, classification tasks and automatic CSV export.
 * `index.html` - HTML, loading jsPsych and the required plugins, stylesheets, and experiment script.
+* `VP_XYZ_experiment.csv` - Answer sheets for each of the ten participants, as used in the thesis. 
 
 ## Note
 
